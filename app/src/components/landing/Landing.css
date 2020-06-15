@@ -1,0 +1,14 @@
+.Landing {
+    text-align: center;
+    height: 100vh;
+}
+
+.Landing-content {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+.Landing-image {
+    height: 40vh;
+}

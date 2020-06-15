@@ -1,0 +1,9 @@
+.MainLayout {
+    max-height: 100%;
+    display: block;
+    position: relative;
+}
+
+.MainLayout-content {
+    max-height: calc(100% - 56px);
+}

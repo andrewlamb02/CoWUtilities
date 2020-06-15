@@ -1,0 +1,69 @@
+.TurnController {
+    height: 100%;
+    position: relative;
+    margin: 1rem;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-header, 
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-header tr,
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-header td {
+    width: 100%;
+    text-align: center;
+}
+
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-units {
+    width: 290px;
+    height: calc(100vh - 100px);
+    overflow: auto;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map {
+    width: 100%;
+    height: 100%;
+    overflow-x: auto;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-column {
+    height: calc(100vh - 100px);
+    width: calc(100% - 360px);
+    overflow-x: auto;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-table {
+    /* border: black 2px solid; */
+    border-collapse: collapse;
+    font-size: 10px;
+    /* font-weight: bold; */
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-jump-realm.TurnController-jump-realm.TurnController-jump-realm {
+    border: black 2px solid;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-table td {
+    border: black 1px solid;
+    min-width: 2rem;
+    min-height: 2rem;
+    overflow: visible;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-upload-button {
+    position: absolute;
+    left: 5px;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-save-button {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+}
+
+.TurnController-impulse-container {
+    display: flex;
+}
+
+.TurnController-impulse-container.TurnController-impulse-container h3 {
+    padding-right: 1rem;
+    margin: auto;
+}

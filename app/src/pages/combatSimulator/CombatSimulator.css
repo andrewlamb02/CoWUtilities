@@ -1,0 +1,25 @@
+.CombatSimulator.CombatSimulator.CombatSimulator.CombatSimulator {
+    height: 100%;
+    padding: 1rem;
+}
+
+.CombatSimulator.CombatSimulator.CombatSimulator .CombatSimulator-segment {
+    height: 100%;
+}
+
+.CombatSimulator-form {
+    position: relative;
+}
+
+.CombatSimulator.CombatSimulator.CombatSimulator.CombatSimulator .CombatSimulator-input {
+    display: block;
+    padding: 0.5rem;
+}
+
+.CombatSimulator.CombatSimulator.CombatSimulator.CombatSimulator .CombatSimulator-column {
+    text-align: left;
+}
+
+.CombatSimulator.CombatSimulator.CombatSimulator.CombatSimulator .CombatSimulator-table {
+    text-align: center;
+}

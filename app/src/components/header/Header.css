@@ -1,0 +1,21 @@
+.Header-navlink .Header-logo {
+    height: 1rem;
+    width: 1rem;
+}
+
+.Header-title {
+    margin: 0;
+}
+
+.Header-navlink {
+    /* min-height: 2.5rem; */
+}
+
+.Header-navlink-active {
+    background-color: #ccc;
+}
+
+.Header-icon {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
