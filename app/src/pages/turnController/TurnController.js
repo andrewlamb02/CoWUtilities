@@ -480,7 +480,7 @@ class TurnController extends Component {
             text = `${text}MOV ${unit.name} `;
 
             unit.moves.forEach(move => {
-                text = `${text}${move}`;
+                text = `${text}${move + 1}`;
             })
 
             text = `${text}\n`;
