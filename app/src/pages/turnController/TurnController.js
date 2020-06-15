@@ -453,7 +453,7 @@ class TurnController extends Component {
         const element = document.createElement("a");
         const file = new Blob([text], {type: 'text/plain'});
         element.href = URL.createObjectURL(file);
-        element.download = `CoW_Orders_Game_${game}_Turn_${turn}_${faction}.txt`;
+        element.download = `CoW_Orders_Game_${game}_Turn_${turn + 1}_${faction}.txt`;
         document.body.appendChild(element); // Required for this to work in FireFox
         element.click();
     }
@@ -480,7 +480,7 @@ class TurnController extends Component {
             text = `${text}MOV ${unit.name} `;
 
             unit.moves.forEach(move => {
-                text = `${text}${move + 1}`;
+                text = `${text}${move}`;
             })
 
             text = `${text}\n`;
