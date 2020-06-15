@@ -453,7 +453,7 @@ class TurnController extends Component {
         const element = document.createElement("a");
         const file = new Blob([text], {type: 'text/plain'});
         element.href = URL.createObjectURL(file);
-        element.download = `CoW_Orders_Game_${game}_Turn_${turn + 1}_${faction}.txt`;
+        element.download = `CoW_Orders_Game_${game}_Turn_${parseInt(turn + 1)}_${faction}.txt`;
         document.body.appendChild(element); // Required for this to work in FireFox
         element.click();
     }
