@@ -43,6 +43,7 @@
 
 .TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-table td {
     border: black 1px solid;
+    color: #ccc;
     min-width: 2rem;
     min-height: 2rem;
     overflow: visible;
@@ -53,10 +54,14 @@
     left: 5px;
 }
 
-.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-save-button {
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-buttons {
     position: absolute;
     right: 5px;
     bottom: 5px;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-button {
+    margin-top: 0.5rem;
 }
 
 .TurnController-impulse-container {

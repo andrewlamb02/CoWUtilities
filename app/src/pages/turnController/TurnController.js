@@ -1,10 +1,12 @@
 import React, { Component, Fragment } from 'react';
 // import logo from './logo.svg';
-import { Button, Dropdown, Grid } from 'semantic-ui-react';
+import { Button, Dropdown, Grid, Icon, Popup } from 'semantic-ui-react';
 import './TurnController.css';
 import { parse } from 'node-html-parser';
 import UnitCard from '../../components/unitCard/UnitCard';
 import * as globals from "../../globals";
+import * as chroma from "chroma-js";
+import CombatSimulator from '../combatSimulator/CombatSimulator';
 
 const IMPULSES = [
     { key: 0, value: 0, text: 'Start' },
@@ -34,8 +36,18 @@ class TurnController extends Component {
             grid: [],
             selectedColor: "#9fe2bf",
             destinationColor: "yellow",
-            currentImpulse: 0
+            colorCycleCount: 0.0,
+            currentImpulse: 0,
+            startingRealmforce: 0,
+            showCombatSimulator: false
         }
+
+        setInterval(() => {
+            const { colorCycleCount } = this.state;
+            this.setState({
+                colorCycleCount: colorCycleCount > 2 ?  0.1 : colorCycleCount + (colorCycleCount > 0.75 && colorCycleCount < 1.25 ? 0.05 : 0.1)
+            })
+        }, 10)
 
         this.clickRealm = this.clickRealm.bind(this);
     }
@@ -148,6 +160,18 @@ class TurnController extends Component {
         isolationLines.forEach(line => {
             units.find(u => u.name === line.split(" ")[0].trim()).pathHome = true;
         })
+        
+        let summaryIndex = sections.findIndex(section => section.title === "Realmforce Report");
+
+        let summaryLines = lines[sections[summaryIndex].index + 1].split("\n");
+
+        let startingRealmforce = 0;
+        
+        summaryLines.forEach(line => {
+            if (parse(line).childNodes[0].text.search("Realmforce Points end of turn balance") !== -1) {
+                startingRealmforce = parseInt(parse(line).childNodes[0].text.split(":")[1].trim().split(" ")[0]);
+            }
+        })
 
         let mapIndex = sections.findIndex(section => section.title === "Map (end of turn view)");
 
@@ -221,34 +245,61 @@ class TurnController extends Component {
             sections,
             units,
             grid,
-            homeRealm
+            homeRealm,
+            startingRealmforce
         });
     }
 
     selectUnit = (event, target) => {
-        this.setState({
-            selectedUnit: target.unit
-        });
+        const { selectedUnit } = this.state;
+        if (target.unit !== selectedUnit) {
+            this.setState({
+                selectedUnit: target.unit
+            });
+    
+            this.setImpulse(0);
+        }
     }
 
     checkColor = (defaultColor, x, y) => {
-        const { selectedColor, selectedUnit, destinationColor } = this.state;
+        const { selectedColor, selectedUnit, destinationColor, colorCycleCount, currentImpulse } = this.state;
+        let bg = defaultColor;
+
+        let chromaBg = chroma(bg);
+        let cyclePoint = colorCycleCount > 1 ? colorCycleCount - 1 : 1 - colorCycleCount;
 
         if (selectedUnit && selectedUnit.location.x === x && selectedUnit.location.y === y) {
-            return selectedColor;
+            bg = chroma.scale([defaultColor, selectedColor])(0.5 + (cyclePoint/2));
+            chromaBg = bg;
+        } else if (this.isMovable(x, y)) {
+            if (currentImpulse !== 10) {
+                let moveCount = 0;
+
+                for (let i = 0; i < currentImpulse; i++) {
+                    if (selectedUnit.moves[i] !== ".") {
+                        moveCount += 1;
+                    }
+                }
+
+                if (moveCount < selectedUnit.ap + (selectedUnit.upgraded.find(u => u === "ap") ? 1 : 0)) {
+                    bg = chroma.scale([defaultColor, destinationColor])(cyclePoint);
+                    chromaBg = bg;
+                }
+            }
         }
 
-        if (this.isMovable(x, y)) {
-            return destinationColor;
+        let value = (chromaBg.rgb()[0]*0.299 + chromaBg.rgb()[1]*0.587 + chromaBg.rgb()[2]*0.114);
+        if (value > 150 || value === 0) {
+            return { bg, color: "#000000" };
         }
 
-        return defaultColor;
+        return { bg, color: "#ffffff" };
     }
 
     isMovable = (x, y) => {
         const { selectedUnit, grid, homeRealm } = this.state;
 
-        if (!selectedUnit || grid[y][x].attributes.blocked) {
+        if (!selectedUnit || grid[y][x].attributes.blocked || x === 0 || y === 0) {
             return false;
         }
 
@@ -381,26 +432,27 @@ class TurnController extends Component {
         }
     }
 
-    clickRealm = (x, y) => {    
+    clickRealm = (x, y) => {
         const { selectedUnit, currentImpulse } = this.state;
 
         let moveCount = 0;
-
-        for (let i = 0; i < currentImpulse; i++) {
-            if (selectedUnit.moves[i] !== ".") {
-                moveCount += 1;
+        if (this.isMovable(x, y) && currentImpulse !== 10) {
+            for (let i = 0; i < currentImpulse; i++) {
+                if (selectedUnit.moves[i] !== ".") {
+                    moveCount += 1;
+                }
             }
-        }
-
-        if (this.isMovable(x, y) && moveCount < selectedUnit.ap + (selectedUnit.upgraded.find(u => u === "ap") ? 1 : 0)) {
-            selectedUnit.moves[currentImpulse] = this.getMoveType(selectedUnit.location, { x, y });
-
-            for (let i = currentImpulse + 1; i < 10; i++) {
-                selectedUnit.moves[i] = ".";
-            }
-            
-            if (currentImpulse !== 10) {
-                this.setImpulse(currentImpulse + 1);
+    
+            if  (moveCount < selectedUnit.ap + (selectedUnit.upgraded.find(u => u === "ap") ? 1 : 0)) {
+                selectedUnit.moves[currentImpulse] = this.getMoveType(selectedUnit.location, { x, y });
+    
+                for (let i = currentImpulse + 1; i < 10; i++) {
+                    selectedUnit.moves[i] = ".";
+                }
+                
+                if (currentImpulse !== 10) {
+                    this.setImpulse(currentImpulse + 1);
+                }
             }
         }
     }
@@ -489,8 +541,28 @@ class TurnController extends Component {
         return text;
     }
 
+    currentRealmforce = () => {
+        const { startingRealmforce, units, faction } = this.state;
+        let realmforce = startingRealmforce;
+
+        units.filter(unit => unit.faction === faction).forEach(unit => {
+            realmforce -= unit.moves.reduce((count, move) => move === "." ? count : count + 1, 0);
+            unit.upgraded.forEach(upgrade => {
+                realmforce -= upgrade === "power" ? unit[upgrade] + 1 : (unit[upgrade]+1)**2
+            })
+        })
+
+        return realmforce;
+    }
+
+    toggleCombatSimulator = () => {
+        this.setState({
+            showCombatSimulator: !this.state.showCombatSimulator
+        })
+    }
+
     render() {
-        let { game, turn, faction, units, grid, selectedUnit, currentImpulse } = this.state;
+        let { game, turn, faction, units, grid, selectedUnit, currentImpulse, startingRealmforce, showCombatSimulator } = this.state;
 
         return (
               <div className="TurnController">
@@ -508,19 +580,38 @@ class TurnController extends Component {
                             name="file"
                             onChange={ this.uploadFile }/>
                     </div>
-                    { turn && <div className="TurnController-save-button">
-                        <Button
-                            content="Save"
-                            labelPosition="left"
-                            icon="download"
-                            color="green"
-                            onClick={ this.downloadTurn } />
+                    { turn && <div className="TurnController-buttons">
+                        <div className="TurnController-button">
+                            <Popup 
+                                position="left center"
+                                open={ showCombatSimulator }
+                                trigger= {
+                                    <Button
+                                        content={<Icon name="gavel" />}
+                                        color="red"
+                                        onClick={ this.toggleCombatSimulator } />
+                                    }>
+                                <CombatSimulator />
+                            </Popup>
+                        </div>
+                        <div className="TurnController-button">
+                            <Popup 
+                                position="top right"
+                                trigger= {
+                                    <Button
+                                        content={<Icon name="download" />}
+                                        color="green"
+                                        onClick={ this.downloadTurn } />
+                                    }>
+                                Save/Download
+                            </Popup>
+                        </div>
                     </div> }
                     <table className="TurnController-header">
                         <tbody>
                             <tr>
                                 <td>
-                                        <h1>{ game }: Turn { turn } - { faction }</h1>
+                                    <h1>{ game }: Turn { turn } - { faction } RP: {this.currentRealmforce()}/{startingRealmforce}</h1>
                                 </td>
                                 <td className="TurnController-impulse-container">
                                     { game && (
@@ -566,13 +657,13 @@ class TurnController extends Component {
                                                             return (
                                                             <td
                                                                 className={`${ cell.attributes.jump ? "TurnController-jump-realm" : "" }`}
-                                                                style={ { backgroundColor: this.checkColor(cell.color, j, i) } }
+                                                                style={ { backgroundColor: this.checkColor(cell.color, j, i).bg, color: this.checkColor(cell.color, j, i).color } }
                                                                 key={`${i}-${j}`}
                                                                 onClick={() => this.clickRealm(j, i) }>
                                                                 { cell.attributes.home ? <b>{ cell.text }</b> : cell.text }
                                                                 <br />
                                                                 { units.filter(m => m.location.x === j && m.location.y === i).map(m => {
-                                                                    return <div key={ m.name }>{ m.name }</div>
+                                                                    return <div key={ m.name }>{ (m.moves || []).find(move => move !== ".") ? <b>{ m.name }</b> : m.name }</div>
                                                                 }) }
                                                             </td>)
                                                         })
