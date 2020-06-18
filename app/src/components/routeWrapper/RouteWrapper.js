@@ -5,9 +5,15 @@ class RouteWrapper extends Component {
     render() {
         const {
             component: Component, 
-            layout: Layout, 
-            ...rest
+            layout: Layout
         } = this.props
+
+        const rest = {};
+        for (const key of Object.keys(this.props)) {
+            if (!["component", "layout"].includes(key)) {
+                rest[key] = this.props[key];
+            }
+        }
 
         return (
             <Route {...rest} render={(props) =>

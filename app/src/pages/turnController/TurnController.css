@@ -18,6 +18,12 @@
     overflow: auto;
 }
 
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-units.collapsed {
+    width: 10rem;
+    height: calc(100vh - 100px);
+    overflow: auto;
+}
+
 .TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map {
     width: 100%;
     height: 100%;
@@ -26,7 +32,13 @@
 
 .TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-column {
     height: calc(100vh - 100px);
-    width: calc(100% - 360px);
+    width: calc(100% - 400px);
+    overflow-x: auto;
+}
+
+.TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-column.expanded {
+    height: calc(100vh - 100px);
+    width: calc(100% - 16rem);
     overflow-x: auto;
 }
 
@@ -64,6 +76,17 @@
     margin-top: 0.5rem;
 }
 
+.TurnController-combat-simulator-popup.TurnController-combat-simulator-popup.TurnController-combat-simulator-popup.TurnController-combat-simulator-popup {
+    width: 90%;
+    max-width: 90%;
+}
+
+.TurnController-cauldron-popup.TurnController-cauldron-popup.TurnController-cauldron-popup.TurnController-cauldron-popup.TurnController-cauldron-popup {
+    width: 90%;
+    height: 90%;
+    max-width: 90%;
+}
+
 .TurnController-impulse-container {
     display: flex;
 }
@@ -71,4 +94,10 @@
 .TurnController-impulse-container.TurnController-impulse-container h3 {
     padding-right: 1rem;
     margin: auto;
+}
+
+.TurnController-unit-collapse-column.TurnController-unit-collapse-column.TurnController-unit-collapse-column.TurnController-unit-collapse-column.TurnController-unit-collapse-column.TurnController-unit-collapse-column {
+    width: 0;
+    padding-left: 4px;
+    padding-right: 24px;
 }

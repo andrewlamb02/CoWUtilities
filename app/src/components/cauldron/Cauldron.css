@@ -1,0 +1,13 @@
+.Cauldron.Cauldron.Cauldron.Cauldron.Cauldron.Cauldron {
+    height: 100%;
+    overflow-y: auto;
+    margin-left: 2rem !important;
+}
+
+.Cauldron-summon-section {
+    width: 95%;
+}
+
+.Cauldron-summon-grid-column.Cauldron-summon-grid-column.Cauldron-summon-grid-column.Cauldron-summon-grid-column.Cauldron-summon-grid-column {
+    width: min-content;
+}

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 // import logo from './logo.svg';
-import { Segment, Container, Divider, Grid, Button, Input, Header, Table, TableBody } from 'semantic-ui-react';
+import { Segment, Container, Divider, Grid, Button, Input, Table, Icon } from 'semantic-ui-react';
 import './CombatSimulator.css';
 
 let STATS = [
@@ -61,33 +61,37 @@ class CombatSimulator extends Component {
 
         this.state = { 
             monsters,
-            results: {}
+            results: {},
+            totalRuns: 10000
         }
     }
 
     updateMonsterValue = (event, target) => {
-        this.state.monsters[target.monster][target.field] = target.value.toString();
+        const { monsters } = this.state;
+        monsters[target.monster][target.field] = target.value.toString();
         if (STATS.find(stat => stat.name === target.field).type === "number"){
-            this.state.monsters[target.monster][target.field] = 0;
+            monsters[target.monster][target.field] = 0;
 
             if (target.value) {
-                this.state.monsters[target.monster][target.field] = parseInt(target.value);
+                monsters[target.monster][target.field] = parseInt(target.value);
             }
         }
 
-        this.setState(this.state);
+        this.setState({ monsters });
     }
 
     runFight = () => {
-        let { monsters } = this.state;
+        let { monsters, totalRuns } = this.state;
 
         let results = {
             monsterOne: 0,
             monsterTwo: 0,
+            monsterOneHealth: 0,
+            monsterTwoHealth: 0,
             draw: 0
         }
 
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < totalRuns; i++) {
             let monstersSet = [];
             monsters.forEach(monster => {
                 let m = {};
@@ -104,8 +108,10 @@ class CombatSimulator extends Component {
             
             if (monstersSet[0].health > 0) {
                 results.monsterOne++;
+                results.monsterOneHealth += monstersSet[0].health;
             } else if (monstersSet[1].health > 0) {
                 results.monsterTwo++;
+                results.monsterTwoHealth += monstersSet[1].health;
             } else {
                 results.draw++;
             }
@@ -151,28 +157,31 @@ class CombatSimulator extends Component {
     }
 
     render() {
-        let { monsters, results } = this.state;
+        let { monsters, results, totalRuns } = this.state;
 
         return (
-              <Container className="CombatSimulator">
-                  <Segment className="CombatSimulator-segment">
-                      <div className="CombatSimulator-form">
-                          <Grid columns={2} relaxed='very'>
-                              <Grid.Column className="CombatSimulator-column">
-                                  {
-                                      STATS.map(stat => {
-                                           return (
-                                            <Input 
-                                                key = { `0-${stat.name}` }
-                                                className="CombatSimulator-input" 
-                                                label={{ color: "green", content: stat.label }}
-                                                type={ stat.type }
-                                                monster={ 0 }
-                                                field={ stat.name }
-                                                value={ monsters[0][stat.name] }
-                                                onChange={ this.updateMonsterValue }
-                                                color="blue"
-                                                ></Input>
+                <Container
+                    className="CombatSimulator">
+                    <Segment className="CombatSimulator-segment">
+                        <div className="CombatSimulator-form">
+                            <Grid columns={2}>
+                                <Grid.Column className="CombatSimulator-column">
+                                    {
+                                        STATS.map(stat => {
+                                            return (
+                                                <div className="CombatSimulator-input" key = { `0-${stat.name}` } >
+                                                    <Input
+                                                        fluid
+                                                        size="small"
+                                                        label={{ color: "green", content: stat.label }}
+                                                        type={ stat.type }
+                                                        monster={ 0 }
+                                                        field={ stat.name }
+                                                        value={ monsters[0][stat.name] }
+                                                        onChange={ this.updateMonsterValue }
+                                                        color="blue"
+                                                        />
+                                               </div>
                                            )
                                       })
                                   }
@@ -181,16 +190,18 @@ class CombatSimulator extends Component {
                                   {
                                       STATS.map(stat => {
                                            return (
-                                            <Input 
-                                                key = { `1-${stat.name}` }
-                                                className="CombatSimulator-input" 
-                                                label={{ color: "blue", content: stat.label }}
-                                                type={ stat.type }
-                                                monster={ 1 }
-                                                field={ stat.name }
-                                                value={ monsters[1][stat.name] }
-                                                onChange={ this.updateMonsterValue }
-                                                ></Input>
+                                                <div className="CombatSimulator-input" key = { `1-${stat.name}` }>
+                                                    <Input
+                                                        fluid
+                                                        size="small"
+                                                        label={{ color: "blue", content: stat.label }}
+                                                        type={ stat.type }
+                                                        monster={ 1 }
+                                                        field={ stat.name }
+                                                        value={ monsters[1][stat.name] }
+                                                        onChange={ this.updateMonsterValue }
+                                                    />
+                                                </div>
                                            )
                                       })
                                   }
@@ -200,41 +211,92 @@ class CombatSimulator extends Component {
                           <Divider vertical>VS</Divider>
                       </div>
                       <Divider></Divider>
-                      <div>
+                      <Container textAlign="center">
                           <Button color="red" onClick={ this.runFight }>Fight</Button>
-                      </div>
+                      </Container>
                       <Divider></Divider>
                       <div>
-                          <Header>
-                              Results
-                          </Header>
-                          <Table className="CombatSimulator-table">
-                              <Table.Header>
-                                  <Table.Row columns={ 3 }>
-                                    <Table.HeaderCell>
-                                        { monsters[0].name }
-                                    </Table.HeaderCell>
-                                    <Table.HeaderCell>
-                                        { monsters[1].name }
-                                    </Table.HeaderCell>
-                                    <Table.HeaderCell>
-                                        Draw
-                                    </Table.HeaderCell>
-                                  </Table.Row>
-                              </Table.Header>
-                              <Table.Body>
-                                  <Table.Row>
-                                    <Table.Cell>
-                                        { results.monsterOne } ({ results.monsterOne / (results.monsterOne + results.monsterTwo + results.draw) * 100 }%)
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        { results.monsterTwo } ({ results.monsterTwo / (results.monsterOne + results.monsterTwo + results.draw) * 100 }%)
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        { results.draw } ({ results.draw / (results.monsterOne + results.monsterTwo + results.draw) * 100 }%)
-                                    </Table.Cell>
-                                  </Table.Row>
-                              </Table.Body>
+                          <Table 
+                                color={ results.monsterOne > results.monsterTwo ? "green" : results.monsterOne < results.monsterTwo ? "blue" : "yellow" }
+                                celled 
+                                selectable 
+                                compact
+                                definition
+                                className="CombatSimulator-table">
+                                <Table.Header>
+                                    <Table.Row columns={ 4 }>
+                                        <Table.HeaderCell width={ 4 }>
+                                            
+                                        </Table.HeaderCell>
+                                        <Table.HeaderCell width={ 4 }>
+                                            { monsters[0].name }
+                                        </Table.HeaderCell>
+                                        <Table.HeaderCell width={ 4 }>
+                                            { monsters[1].name }
+                                        </Table.HeaderCell>
+                                        <Table.HeaderCell width={ 4 }>
+                                            Draw
+                                        </Table.HeaderCell>
+                                    </Table.Row>
+                                </Table.Header>
+                                <Table.Body>
+                                    <Table.Row>
+                                        <Table.Cell>
+                                            <Icon name="trophy" /> Wins
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { results.monsterOne }
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { results.monsterTwo }
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { results.draw }
+                                        </Table.Cell>
+                                    </Table.Row>
+                                    <Table.Row>
+                                        <Table.Cell>
+                                            <Icon name="trophy" /><Icon name="percent" /> Win %
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { (results.monsterOne / (totalRuns) * 100).toFixed(2) }%
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { (results.monsterTwo / (totalRuns) * 100).toFixed(2) }%
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { (results.draw / (totalRuns) * 100).toFixed(2) }%
+                                        </Table.Cell>
+                                    </Table.Row>
+                                    <Table.Row>
+                                        <Table.Cell>
+                                            <Icon name="tint" /> Average Health
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { (results.monsterOneHealth / totalRuns).toFixed(2) }
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { (results.monsterTwoHealth / totalRuns).toFixed(2) }
+                                        </Table.Cell>
+                                        <Table.Cell>
+
+                                        </Table.Cell>
+                                    </Table.Row>
+                                    <Table.Row>
+                                        <Table.Cell>
+                                            <Icon name="tint" /><Icon name="trophy" /> Average Health (Only Wins)
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { (results.monsterOneHealth / results.monsterOne).toFixed(2) }
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            { (results.monsterTwoHealth / results.monsterTwo).toFixed(2) }
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            
+                                        </Table.Cell>
+                                    </Table.Row>
+                                </Table.Body>
                           </Table>
                       </div>
                   </Segment>

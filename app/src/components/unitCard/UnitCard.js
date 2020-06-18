@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Card, Icon, GridColumn, Grid, Popup, Segment, Button } from 'semantic-ui-react';
+import { Card, Icon, GridColumn, Grid, Popup } from 'semantic-ui-react';
 import './UnitCard.css';
 import * as globals from '../../globals';
 
@@ -39,8 +39,21 @@ class UnitCard extends Component {
     }
 
     render() {
-        const { unit, selected, onClick, clearMoves, upgradeUnit } = this.props;
+        const { unit, selected, onClick, clearMoves, upgradeUnit, preview } = this.props;
         const { collapsed } = this.state;
+
+        if (preview) {
+            return (
+                <Card
+                className={ `UnitCard ${selected ? "UnitCard-selected" : "" } ${unit.location === "Limbo" ? "UnitCard-limbo" : ""}`} 
+                onClick={ onClick }
+                unit={ unit }>
+                    <Card.Content>
+                        { unit.name }
+                    </Card.Content>
+                </Card>
+            )
+        }
 
         if (collapsed) {
             return (

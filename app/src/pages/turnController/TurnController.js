@@ -1,9 +1,10 @@
 import React, { Component, Fragment } from 'react';
 // import logo from './logo.svg';
-import { Button, Dropdown, Grid, Icon, Popup } from 'semantic-ui-react';
+import { Button, Dropdown, Grid, Popup, Modal, TextArea } from 'semantic-ui-react';
 import './TurnController.css';
 import { parse } from 'node-html-parser';
 import UnitCard from '../../components/unitCard/UnitCard';
+import Cauldron from '../../components/cauldron/Cauldron';
 import * as globals from "../../globals";
 import * as chroma from "chroma-js";
 import CombatSimulator from '../combatSimulator/CombatSimulator';
@@ -26,6 +27,13 @@ class TurnController extends Component {
     constructor(props) {
         super(props)
 
+        let cycleInterval = setInterval(() => {
+            const { colorCycleCount } = this.state;
+            this.setState({
+                colorCycleCount: colorCycleCount > 2 ?  0.1 : colorCycleCount + (colorCycleCount > 0.75 && colorCycleCount < 1.25 ? 0.05 : 0.1)
+            })
+        }, 10)
+
         this.state = {
             game: "",
             turn: "",
@@ -39,27 +47,102 @@ class TurnController extends Component {
             colorCycleCount: 0.0,
             currentImpulse: 0,
             startingRealmforce: 0,
-            showCombatSimulator: false
+            showCombatSimulator: false,
+            showCauldron: false,
+            cycleInterval,
+            summons: {},
+            unitsCollapsed: false,
+            extraCommands: ""
         }
-
-        setInterval(() => {
-            const { colorCycleCount } = this.state;
-            this.setState({
-                colorCycleCount: colorCycleCount > 2 ?  0.1 : colorCycleCount + (colorCycleCount > 0.75 && colorCycleCount < 1.25 ? 0.05 : 0.1)
-            })
-        }, 10)
 
         this.clickRealm = this.clickRealm.bind(this);
     }
 
-    uploadFile = (event) => {
-      let file = event.target.files[0];
+    componentWillUnmount() {
+        clearInterval(this.state.cycleInterval)
+    }
+
+    uploadTurnFile = (event) => {
+        var file = event.target.files[0];
+        let turnControllerThis = this;
+
+        let f = file ? file.name.split('.') : [""];
+        if (file && f.pop() === "txt") {
+            var reader = new FileReader();
+            reader.onload = function(){
+              var text = reader.result;
+              turnControllerThis.loadTurn(text);
+            };
+            reader.readAsText(file);
+        }
       
-      let f = file.name.split('.');
-      if (file && f.pop() === "html") {
-        file.text().then(this.loadFile);
-        this.parseFileName(f.pop());
-      }
+    }
+    
+    loadTurn = (text) => {
+        const { units, summons } = this.state;
+
+        let lines = text.split("\n");
+
+        lines.forEach(line => {
+            line = line.split("#")[0].trim();
+            
+            if (line !== "") {
+                let words = line.split(" ");
+                let command = words[0];
+                let unit;
+                switch (command) {
+                    case "MOV":
+                        unit = units.find(u => u.name === words[1]);
+                        let move = 0;
+                        for (let i = 0; i < words[2].length; i++) {
+                            switch (words[2][i]) {
+                                case "T":
+                                    unit.moves[move] = words[2].substr(i, 4);
+                                    i += 3;
+                                    break;
+                                default:
+                                    unit.moves[move] = words[2].charAt(i)
+                                    break;
+                            }
+                            move += 1;
+                        }
+                        break;
+                    case "SUM":
+                        summons[words[2]] = parseInt(words[1]);
+                        break;
+                    case "UPG":
+                        unit = units.find(u => u.name === words[1]);
+                        if (!unit.upgraded.find(u => u === globals.statCodes[words[2]])) {
+                            unit.upgraded.push(globals.statCodes[words[2]]);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
+
+        this.setState({
+            units,
+            summons
+        });
+    }
+
+    uploadFile = (event) => {
+        var file = event.target.files[0];
+        let turnControllerThis = this;
+
+        let f = file ? file.name.split('.') : [""];
+        if (file && f.pop() === "html") {
+            var reader = new FileReader();
+            reader.onload = function(){
+              var text = reader.result;
+              turnControllerThis.loadFile(text);
+            };
+            reader.readAsText(file);
+            this.parseFileName(f.pop());
+        }
+      
     }
 
     parseFileName = (name) => {
@@ -161,6 +244,16 @@ class TurnController extends Component {
             units.find(u => u.name === line.split(" ")[0].trim()).pathHome = true;
         })
         
+        let cauldronStrengthIndex = sections.findIndex(section => section.title === "Cauldron Strength");
+
+        let cauldronStrengthLines = lines.slice(sections[cauldronStrengthIndex].index + 1, sections[cauldronStrengthIndex+1].index);
+        
+        let cauldronStrength = 0;
+
+        cauldronStrengthLines.forEach(line => {
+            cauldronStrength = parseInt(line.split(" ")[line.split(" ").length-1].trim());
+        })
+        
         let summaryIndex = sections.findIndex(section => section.title === "Realmforce Report");
 
         let summaryLines = lines[sections[summaryIndex].index + 1].split("\n");
@@ -246,7 +339,8 @@ class TurnController extends Component {
             units,
             grid,
             homeRealm,
-            startingRealmforce
+            startingRealmforce,
+            cauldronStrength
         });
     }
 
@@ -511,7 +605,7 @@ class TurnController extends Component {
     }
 
     generateFile = () => {
-        const { units, faction } = this.state;
+        const { units, faction, summons, extraCommands } = this.state;
         let text = "";
 
         units.filter(unit => unit.faction === faction).forEach(unit => {
@@ -538,7 +632,21 @@ class TurnController extends Component {
             text = `${text}\n`;
         });
 
+        Object.keys(summons).forEach(key => {
+            if (summons[key] > 0) {
+                text = `${text}SUM ${summons[key]} ${key}\n`
+            }
+        })
+
+        text = `${text}${extraCommands}`;
+
         return text;
+    }
+
+    updateSummonCount = (unit, value) => {
+        const { summons } = this.state;
+        summons[unit.code] = value;
+        this.setState({ summons });
     }
 
     currentRealmforce = () => {
@@ -557,37 +665,113 @@ class TurnController extends Component {
 
     toggleCombatSimulator = () => {
         this.setState({
-            showCombatSimulator: !this.state.showCombatSimulator
+            showCombatSimulator: !this.state.showCombatSimulator,
+            showCauldron: false
+        })
+    }
+
+    toggleCauldron = () => {
+        this.setState({
+            showCauldron: !this.state.showCauldron,
+            showCombatSimulator: false
+        })
+    }
+
+    collapseUnits = () => {
+        this.setState({
+            unitsCollapsed: !this.state.unitsCollapsed
+        })
+    }
+
+    updateExtraCommands = (target, data) => {
+        this.setState({
+            extraCommands: data.value
         })
     }
 
     render() {
-        let { game, turn, faction, units, grid, selectedUnit, currentImpulse, startingRealmforce, showCombatSimulator } = this.state;
+        let { 
+            game,
+            turn,
+            faction,
+            units,
+            grid,
+            selectedUnit,
+            currentImpulse,
+            startingRealmforce,
+            showCombatSimulator,
+            showCauldron,
+            cauldronStrength,
+            summons,
+            unitsCollapsed
+        } = this.state;
 
         return (
               <div className="TurnController">
                     <div className="TurnController-upload-button">
-                        <Button
-                            content="Upload"
-                            labelPosition="left"
-                            icon="file"
-                            htmlFor="file"
-                            as="label"
-                            color="blue"/>
-                        <input type="file"
-                            id="file"
-                            hidden
-                            name="file"
-                            onChange={ this.uploadFile }/>
+                        { turn ?
+                            <Fragment>
+                                <Button
+                                    content="Load Turn"
+                                    labelPosition="left"
+                                    icon="upload"
+                                    htmlFor="load"
+                                    as="label"
+                                    color="yellow"/>
+                                <input type="file"
+                                    id="load"
+                                    hidden
+                                    name="load"
+                                    onChange={ this.uploadTurnFile }/>
+                            </Fragment> :
+                            <Fragment>
+                                <Button
+                                    content="Upload"
+                                    labelPosition="left"
+                                    icon="file"
+                                    htmlFor="file"
+                                    as="label"
+                                    color="blue"/>
+                                <input type="file"
+                                    id="file"
+                                    hidden
+                                    name="file"
+                                    onChange={ this.uploadFile }/>
+                                <Button
+                                    href="/CoW_Results_Game_g7_Turn_3_SOL.html"
+                                    download="CoW_Results_Game_g7_Turn_3_SOL.html"
+                                    content="Sample File"
+                                    labelPosition="left"
+                                    icon="download"
+                                    as="a"
+                                    color="green"/>
+                            </Fragment> }
                     </div>
                     { turn && <div className="TurnController-buttons">
                         <div className="TurnController-button">
                             <Popup 
-                                position="left center"
-                                open={ showCombatSimulator }
+                                position="right center"
+                                open={ showCauldron }
+                                className="TurnController-cauldron-popup"
                                 trigger= {
                                     <Button
-                                        content={<Icon name="gavel" />}
+                                        circular
+                                        icon="dna"
+                                        color="blue"
+                                        onClick={ this.toggleCauldron } />
+                                    }>
+                                <Cauldron updateCount={ this.updateSummonCount } summons={ summons } cauldronStrength={cauldronStrength} />
+                            </Popup>
+                        </div>
+                        <div className="TurnController-button">
+                            <Popup 
+                                position="right center"
+                                open={ showCombatSimulator }
+                                className="TurnController-combat-simulator-popup"
+                                trigger= {
+                                    <Button
+                                        circular
+                                        icon="gavel"
                                         color="red"
                                         onClick={ this.toggleCombatSimulator } />
                                     }>
@@ -595,16 +779,25 @@ class TurnController extends Component {
                             </Popup>
                         </div>
                         <div className="TurnController-button">
-                            <Popup 
-                                position="top right"
-                                trigger= {
+                            <Modal trigger={
+                                        <Button
+                                            icon="download"
+                                            color="green" />
+                                        }>
+                                <Modal.Header>Save/Download Turn</Modal.Header>
+                                <Modal.Content>
+                                    <h3>Extra Commands</h3>
+                                    <TextArea onChange={ this.updateExtraCommands }/>
+                                </Modal.Content>
+                                <Modal.Content>
                                     <Button
-                                        content={<Icon name="download" />}
+                                        icon="download"
                                         color="green"
-                                        onClick={ this.downloadTurn } />
-                                    }>
-                                Save/Download
-                            </Popup>
+                                        onClick={ this.downloadTurn } >
+                                            Save/Download
+                                        </Button>
+                                </Modal.Content>
+                            </Modal>
                         </div>
                     </div> }
                     <table className="TurnController-header">
@@ -629,8 +822,8 @@ class TurnController extends Component {
                             </tr>
                         </tbody>
                     </table>
-                    <Grid columns={ 2 }>
-                        <Grid.Column className="TurnController-units">
+                    <Grid columns={ 3 }>
+                        <Grid.Column className={`TurnController-units ${ unitsCollapsed ? "collapsed" : "" }`}>
                             <h2>Units {units.filter(unit => unit.location !== "Limbo" && unit.faction === faction).length}/20</h2>
                             <div>
                                 { units.filter(u => u.faction === faction ).map(u => {
@@ -640,11 +833,19 @@ class TurnController extends Component {
                                                 selected={selectedUnit === u}
                                                 onClick={ this.selectUnit }
                                                 clearMoves={this.clearMoves}
-                                                upgradeUnit={this.upgradeUnit} />
+                                                upgradeUnit={this.upgradeUnit}
+                                                preview={unitsCollapsed} />
                                 }) }
                             </div>
                         </Grid.Column>
-                        <Grid.Column className="TurnController-map-column">
+                        <Grid.Column verticalAlign="middle" className="TurnController-unit-collapse-column">
+                            <Button
+                                circular
+                                size="small"
+                                icon={ `chevron ${unitsCollapsed ? "right" : "left"}` }
+                                onClick={ this.collapseUnits }/>
+                        </Grid.Column>
+                        <Grid.Column className={`TurnController-map-column ${ unitsCollapsed ? "expanded" : "" }`} >
                             <div className="TurnController-map">
                                 <table className="TurnController-map-table">
                                     <tbody>
