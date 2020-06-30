@@ -70,7 +70,8 @@ export let unitTypes = [
         ap: 3,
         power: 1,
         skill: 2,
-        cauldronStrength: 0
+        cauldronStrength: 0,
+        specials: ["B"]
     },
     {
         name: "Scum",
@@ -88,8 +89,16 @@ export let unitTypes = [
         skill: 1,
         cauldronStrength: 0
     },
+    // {
+    //     name: "Stekelvarken",
+    //     code: "SV",
+    //     ap: 3,
+    //     power: 2,
+    //     skill: 1,
+    //     cauldronStrength: 0
+    // },
     {
-        name: "Stekelvarken",
+        name: "Skekelvarken",
         code: "SV",
         ap: 3,
         power: 2,
@@ -164,6 +173,7 @@ export let unitTypes = [
         code: "DG",
         ap: 4,
         power: 10,
-        skill: 2
+        skill: 2,
+        specials: ["B"]
     }
 ]

@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 // import logo from './logo.svg';
-import { Button, Dropdown, Grid, Popup, Modal, TextArea } from 'semantic-ui-react';
+import { Button, Dropdown, Grid, Popup, Modal, TextArea, Checkbox, ModalActions } from 'semantic-ui-react';
 import './TurnController.css';
 import { parse } from 'node-html-parser';
 import UnitCard from '../../components/unitCard/UnitCard';
@@ -8,6 +8,8 @@ import Cauldron from '../../components/cauldron/Cauldron';
 import * as globals from "../../globals";
 import * as chroma from "chroma-js";
 import CombatSimulator from '../combatSimulator/CombatSimulator';
+import sprites from '../../resources/sprites';
+import UnitSprite from '../../components/UnitSprite/UnitSprite';
 
 const IMPULSES = [
     { key: 0, value: 0, text: 'Start' },
@@ -30,9 +32,9 @@ class TurnController extends Component {
         let cycleInterval = setInterval(() => {
             const { colorCycleCount } = this.state;
             this.setState({
-                colorCycleCount: colorCycleCount > 2 ?  0.1 : colorCycleCount + (colorCycleCount > 0.75 && colorCycleCount < 1.25 ? 0.05 : 0.1)
+                colorCycleCount: colorCycleCount > 2 ?  0.2 : colorCycleCount + (colorCycleCount > 0.75 && colorCycleCount < 1.25 ? 0.1 : 0.2)
             })
-        }, 10)
+        }, 20)
 
         this.state = {
             game: "",
@@ -52,7 +54,11 @@ class TurnController extends Component {
             cycleInterval,
             summons: {},
             unitsCollapsed: false,
-            extraCommands: ""
+            extraCommands: "",
+            showSprites: false,
+            popupUnits: [],
+            showCellPopup: false,
+            popupCellColor: ""
         }
 
         this.clickRealm = this.clickRealm.bind(this);
@@ -159,24 +165,26 @@ class TurnController extends Component {
         let lines = text.split("<br>");
         let sections = [];
         let homeRealm = {};
+        let factionLogo;
 
-        lines.forEach((line, index) => {
-            line = line.trim();
-            let start = line.search("<h2>") === -1 ? line.search("<h3>") : line.search("<h2>");
+        for (let i = 0; i < lines.length; i++) {
+            lines[i] = lines[i].trim();
+
+            let start = lines[i].search("<h2>") === -1 ? lines[i].search("<h3>") : lines[i].search("<h2>");
             if (start !== -1) {
-                let end = (line.search("</h2>") === -1 ? line.search("</h3>") : line.search("</h2>")) + 5;
-                lines[index] = line.substr(start, end);
-                lines.splice(index + 1, 0, line.substr(end, line.length))
+                let end = (lines[i].search("</h2>") === -1 ? lines[i].search("</h3>") : lines[i].search("</h2>")) + 5;
+                lines.splice(i + 1, 0, lines[i].substr(end, lines[i].length))
+                lines[i] = lines[i].substr(start, end);
                 
-                let section = line.substr(start, end);
+                let section = lines[i]
                 sections.push({
-                    index,
+                    i,
                     title: parse(section).text.trim()
                 })
             }
 
-            if (line.search("Home Realm") !== -1) {
-                let word = line.split(" ")[2];
+            if (lines[i].search("Home Realm") !== -1) {
+                let word = lines[i].split(" ")[2];
                 let xIndex = word.search("x");
                 let yIndex = word.search("y");
                 
@@ -185,11 +193,17 @@ class TurnController extends Component {
                     y: parseInt(word.substring(yIndex + 1, word.length))
                 }
             }
-        });
+            if (i === 0 && lines[i].search("<img") !== -1) {
+                factionLogo = lines[i].substring(lines[i].search('<img src="') + 10, lines[i].length);
+                factionLogo = factionLogo.substring(0, factionLogo.search('"'));
+            }
+        }
+
+        // console.log(sections);
 
         let unitsIndex = sections.findIndex(section => section.title === "Unit Summary (end of turn view)");
 
-        let unitLines = lines.slice(sections[unitsIndex].index + 1, sections[unitsIndex+1].index - 3);
+        let unitLines = lines.slice(sections[unitsIndex].i + 1, sections[unitsIndex+1].i - 3);
         let units = [];
         let i = 0;
         unitLines.forEach(line => {
@@ -238,15 +252,15 @@ class TurnController extends Component {
         
         let isolationIndex = sections.findIndex(section => section.title === "Cauldronborn Isolation Checks");
 
-        let isolationLines = lines.slice(sections[isolationIndex].index + 1, sections[isolationIndex+1].index);
+        let isolationLines = lines.slice(sections[isolationIndex].i + 1, sections[isolationIndex+1].i);
         
         isolationLines.forEach(line => {
-            units.find(u => u.name === line.split(" ")[0].trim()).pathHome = true;
+            (units.find(u => u.name === line.split(" ")[0].trim()) || {}).pathHome = true;
         })
         
         let cauldronStrengthIndex = sections.findIndex(section => section.title === "Cauldron Strength");
 
-        let cauldronStrengthLines = lines.slice(sections[cauldronStrengthIndex].index + 1, sections[cauldronStrengthIndex+1].index);
+        let cauldronStrengthLines = lines.slice(sections[cauldronStrengthIndex].i + 1, sections[cauldronStrengthIndex+1].i);
         
         let cauldronStrength = 0;
 
@@ -256,7 +270,7 @@ class TurnController extends Component {
         
         let summaryIndex = sections.findIndex(section => section.title === "Realmforce Report");
 
-        let summaryLines = lines[sections[summaryIndex].index + 1].split("\n");
+        let summaryLines = lines[sections[summaryIndex].i + 1].split("\n");
 
         let startingRealmforce = 0;
         
@@ -268,7 +282,7 @@ class TurnController extends Component {
 
         let mapIndex = sections.findIndex(section => section.title === "Map (end of turn view)");
 
-        let mapLines = lines.slice(sections[mapIndex].index + 1, lines.length);
+        let mapLines = lines.slice(sections[mapIndex].i + 1, (sections[mapIndex+1] || {}).i || lines.length);
 
         let grid = [];
         let row = [];
@@ -289,7 +303,7 @@ class TurnController extends Component {
                         if (mText.split("_")[1] !== faction){
                             units.push({
                                 name: mText,
-                                type: mText.split("_")[0],
+                                type: (globals.unitTypes.find(u => u.code === mText.split("_")[0]) || {}).name,
                                 faction: mText.split("_")[1],
                                 location: {
                                     x: row.length,
@@ -298,7 +312,9 @@ class TurnController extends Component {
                                 initialLocation: {
                                     x: row.length,
                                     y: grid.length
-                                }
+                                },
+                                moves: [],
+                                upgraded: []
                             })
                         }
                     }
@@ -340,13 +356,14 @@ class TurnController extends Component {
             grid,
             homeRealm,
             startingRealmforce,
-            cauldronStrength
+            cauldronStrength,
+            factionLogo
         });
     }
 
     selectUnit = (event, target) => {
-        const { selectedUnit } = this.state;
-        if (target.unit !== selectedUnit) {
+        const { selectedUnit, faction } = this.state;
+        if (target.unit !== selectedUnit && target.unit.faction === faction) {
             this.setState({
                 selectedUnit: target.unit
             });
@@ -358,11 +375,17 @@ class TurnController extends Component {
     checkColor = (defaultColor, x, y) => {
         const { selectedColor, selectedUnit, destinationColor, colorCycleCount, currentImpulse } = this.state;
         let bg = defaultColor;
+        let cursor = "pointer";
+
+        if (bg === "#000000") {
+            cursor = "not-allowed"
+        }
 
         let chromaBg = chroma(bg);
         let cyclePoint = colorCycleCount > 1 ? colorCycleCount - 1 : 1 - colorCycleCount;
 
         if (selectedUnit && selectedUnit.location.x === x && selectedUnit.location.y === y) {
+            cursor = "alias";
             bg = chroma.scale([defaultColor, selectedColor])(0.5 + (cyclePoint/2));
             chromaBg = bg;
         } else if (this.isMovable(x, y)) {
@@ -376,6 +399,7 @@ class TurnController extends Component {
                 }
 
                 if (moveCount < selectedUnit.ap + (selectedUnit.upgraded.find(u => u === "ap") ? 1 : 0)) {
+                    cursor = "all-scroll"
                     bg = chroma.scale([defaultColor, destinationColor])(cyclePoint);
                     chromaBg = bg;
                 }
@@ -384,16 +408,16 @@ class TurnController extends Component {
 
         let value = (chromaBg.rgb()[0]*0.299 + chromaBg.rgb()[1]*0.587 + chromaBg.rgb()[2]*0.114);
         if (value > 150 || value === 0) {
-            return { bg, color: "#000000" };
+            return { bg, color: "#000000", cursor };
         }
 
-        return { bg, color: "#ffffff" };
+        return { bg, color: "#ffffff", cursor };
     }
 
     isMovable = (x, y) => {
         const { selectedUnit, grid, homeRealm } = this.state;
 
-        if (!selectedUnit || grid[y][x].attributes.blocked || x === 0 || y === 0) {
+        if (!selectedUnit || (grid[y][x].attributes.blocked && !this.isAdjacent(selectedUnit.location, { x, y })) || x === 0 || y === 0) {
             return false;
         }
 
@@ -407,6 +431,10 @@ class TurnController extends Component {
 
         if (this.isAdjacent(selectedUnit.location, { x, y })) {
             if (grid[y][x].attributes.home && (y !== homeRealm.y || x !== homeRealm.x)) {
+                return false;
+            }
+            
+            if (grid[y][x].attributes.blocked && !(globals.unitTypes.find(u => u.name === selectedUnit.type).specials || []).find(a => a === "B")) {
                 return false;
             }
 
@@ -474,7 +502,7 @@ class TurnController extends Component {
                 unit.location = "Limbo";
             }
 
-            if (unit.moves) {
+            if ((unit.moves || []).length) {
                 for (let i = 0; i < impulse; i++) {
                     switch (unit.moves[i]) {
                         case "N":
@@ -548,6 +576,8 @@ class TurnController extends Component {
                     this.setImpulse(currentImpulse + 1);
                 }
             }
+        } else {
+            this.showCellPopup(x, y);
         }
     }
     
@@ -689,6 +719,47 @@ class TurnController extends Component {
         })
     }
 
+    cell = (cell, j, i) => {
+        const { units, showSprites, faction, homeRealm, grid, colorCycleCount, selectedUnit } = this.state
+        return (
+        <td
+            className={`${ cell.attributes.jump ? "TurnController-jump-realm" : "" }`}
+            style={ { backgroundColor: this.checkColor(cell.color, j, i).bg, ...this.checkColor(cell.color, j, i) } }
+            key={`${i}-${j}`}
+            onClick={() => this.clickRealm(j, i) }>
+                { cell.attributes.home ? <b>{ cell.text }</b> : cell.text }
+            <br />
+                { units.filter(m => m.location.x === j && m.location.y === i).map(m => {
+                    let bg = m.faction === faction ?  grid[homeRealm.y][homeRealm.x].color : cell.color;
+                    let sprite = <UnitSprite animated={selectedUnit === m} unitType={m.type} className="TurnController-unit-sprite" color={bg}/>
+                    if (showSprites && sprites.units(m.type)) {
+                        return <div key={ m.name }>
+                            { (m.moves || []).find(move => move !== ".") ? <b>*{sprite}</b>: sprite }
+                            </div>
+                    }
+                    return <div key={ m.name }>
+                        { (m.moves || []).find(move => move !== ".") ? <b>{ m.name }</b>: m.name }
+                        </div>
+                }) }
+        </td>)
+    }
+
+    toggleShowSprites = () => {
+        this.setState({ showSprites: !this.state.showSprites })
+    }
+
+    showCellPopup = (x, y) => {
+        const { grid, units } = this.state;
+
+        if (this.state.units.filter(u => u.location.x === x && u.location.y === y).length){
+            this.setState({
+                showCellPopup: true,
+                popupUnits: units.filter(u => u.location.x === x && u.location.y === y),
+                popupCellColor: grid[y][x].color
+            })
+        }
+    }
+
     render() {
         let { 
             game,
@@ -703,7 +774,13 @@ class TurnController extends Component {
             showCauldron,
             cauldronStrength,
             summons,
-            unitsCollapsed
+            unitsCollapsed,
+            showSprites,
+            popupUnits,
+            showCellPopup,
+            factionLogo,
+            homeRealm,
+            popupCellColor
         } = this.state;
 
         return (
@@ -792,10 +869,9 @@ class TurnController extends Component {
                                 <Modal.Content>
                                     <Button
                                         icon="download"
+                                        content="Save/Download"
                                         color="green"
-                                        onClick={ this.downloadTurn } >
-                                            Save/Download
-                                        </Button>
+                                        onClick={ this.downloadTurn } />
                                 </Modal.Content>
                             </Modal>
                         </div>
@@ -804,7 +880,10 @@ class TurnController extends Component {
                         <tbody>
                             <tr>
                                 <td>
-                                    <h1>{ game }: Turn { turn } - { faction } RP: {this.currentRealmforce()}/{startingRealmforce}</h1>
+                                    <h1>
+                                        <img className="TurnController-faction-logo" src={factionLogo} />
+                                        { game }: Turn { turn } - { faction } RP: {this.currentRealmforce()}/{startingRealmforce}
+                                    </h1>
                                 </td>
                                 <td className="TurnController-impulse-container">
                                     { game && (
@@ -824,7 +903,14 @@ class TurnController extends Component {
                     </table>
                     <Grid columns={ 3 }>
                         <Grid.Column className={`TurnController-units ${ unitsCollapsed ? "collapsed" : "" }`}>
-                            <h2>Units {units.filter(unit => unit.location !== "Limbo" && unit.faction === faction).length}/20</h2>
+                            <h2>
+                                Units {units.filter(unit => unit.location !== "Limbo" && unit.faction === faction).length}/20
+                                <Popup
+                                    position="bottom right"
+                                    trigger={<Checkbox toggle onClick={this.toggleShowSprites} className="TurnController-showSprites-toggle" />}>
+                                        Enable Experimental Features
+                                </Popup>
+                            </h2>
                             <div>
                                 { units.filter(u => u.faction === faction ).map(u => {
                                     return <UnitCard 
@@ -834,7 +920,8 @@ class TurnController extends Component {
                                                 onClick={ this.selectUnit }
                                                 clearMoves={this.clearMoves}
                                                 upgradeUnit={this.upgradeUnit}
-                                                preview={unitsCollapsed} />
+                                                preview={unitsCollapsed}
+                                                showSprites={showSprites} />
                                 }) }
                             </div>
                         </Grid.Column>
@@ -854,20 +941,7 @@ class TurnController extends Component {
                                             return (
                                                 <tr key={i}>
                                                     {
-                                                        row.map((cell, j) => {
-                                                            return (
-                                                            <td
-                                                                className={`${ cell.attributes.jump ? "TurnController-jump-realm" : "" }`}
-                                                                style={ { backgroundColor: this.checkColor(cell.color, j, i).bg, color: this.checkColor(cell.color, j, i).color } }
-                                                                key={`${i}-${j}`}
-                                                                onClick={() => this.clickRealm(j, i) }>
-                                                                { cell.attributes.home ? <b>{ cell.text }</b> : cell.text }
-                                                                <br />
-                                                                { units.filter(m => m.location.x === j && m.location.y === i).map(m => {
-                                                                    return <div key={ m.name }>{ (m.moves || []).find(move => move !== ".") ? <b>{ m.name }</b> : m.name }</div>
-                                                                }) }
-                                                            </td>)
-                                                        })
+                                                        row.map((c, j) => this.cell(c, j, i))
                                                     }
                                                 </tr>
                                             )
@@ -878,6 +952,26 @@ class TurnController extends Component {
                             </div>
                         </Grid.Column>
                     </Grid>
+                    <Modal 
+                        className="TurnController-cell-popup" 
+                        open={showCellPopup}
+                        size="mini"
+                        basic
+                        onClose={() => this.setState({ showCellPopup: false })}>
+                        <Modal.Content>
+                            { popupUnits.map(u => {
+                                return <UnitCard 
+                                            key={`${u.key}-Popup`} 
+                                            unit={u} 
+                                            selected={selectedUnit === u}
+                                            onClick={ this.selectUnit }
+                                            clearMoves={this.clearMoves}
+                                            upgradeUnit={this.upgradeUnit}
+                                            factionColor={u.faction === faction ? grid[homeRealm.y][homeRealm.x].color : popupCellColor}
+                                            showSprites />
+                            }) }
+                        </Modal.Content>
+                    </Modal>
               </div>
         );
     }

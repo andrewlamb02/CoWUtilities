@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import './TypeCard.css';
 import { Card, Table, Icon, Popup, Input } from 'semantic-ui-react';
-
+import UnitSprite from '../UnitSprite/UnitSprite';
 class TypeCard extends Component {
     render() {
         const { unitType, updateCount, count } = this.props;
-        
         return <Card className="TypeCard">
             <Card.Content>
                 <Card.Header>
+                    <UnitSprite unitType={unitType.name} className="TypeCard-unit-sprite" animated />
                     { unitType.name }
                 </Card.Header>
             </Card.Content>

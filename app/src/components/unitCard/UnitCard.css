@@ -13,3 +13,9 @@
 .UnitCard.UnitCard.UnitCard.UnitCard.UnitCard-selected {
     background-color: #9fe2bf;
 }
+
+.UnitCard-unit-sprite {
+    height: 32px;
+    width: 32px;
+    margin-right: 0.5rem;
+}

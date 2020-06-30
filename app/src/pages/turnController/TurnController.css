@@ -56,7 +56,7 @@
 .TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-table td {
     border: black 1px solid;
     color: #ccc;
-    min-width: 2rem;
+    min-width: 4rem;
     min-height: 2rem;
     overflow: visible;
 }
@@ -100,4 +100,21 @@
     width: 0;
     padding-left: 4px;
     padding-right: 24px;
+}
+
+.TurnController-unit-sprite {
+    height: 32px;
+    width: 32px;
+}
+
+.TurnController-experimental-toggle {
+    padding-left: 0.5rem
+}
+
+.TurnController-cell-popup.TurnController-cell-popup.TurnController-cell-popup.TurnController-cell-popup.TurnController-cell-popup {
+    text-align: center;
+}
+
+.TurnController-faction-logo {
+    height: 2rem;
 }

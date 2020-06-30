@@ -5,3 +5,8 @@
 .TypeCard-stats {
     text-align: center;
 }
+
+.TypeCard-unit-sprite {
+    height: 32px;
+    width: 32px;
+}

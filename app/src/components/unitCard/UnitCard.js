@@ -1,7 +1,8 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { Card, Icon, GridColumn, Grid, Popup } from 'semantic-ui-react';
 import './UnitCard.css';
 import * as globals from '../../globals';
+import UnitSprite from '../UnitSprite/UnitSprite';
 
 class UnitCard extends Component {
     constructor(props) {
@@ -39,101 +40,99 @@ class UnitCard extends Component {
     }
 
     render() {
-        const { unit, selected, onClick, clearMoves, upgradeUnit, preview } = this.props;
+        const { unit, selected, onClick, clearMoves, upgradeUnit, preview, showSprites, factionColor } = this.props;
         const { collapsed } = this.state;
 
+        let sprite = false;
+
+        if (showSprites) {
+            sprite = <UnitSprite unitType={unit.type} className="UnitCard-unit-sprite" animated={selected} color={factionColor} />
+        }
+
+        let body = (<Fragment>
+        <Card.Content>
+            <Card.Header>
+                {sprite}
+                {unit.name}
+                <Popup content='Collapse' trigger={<Icon name='chevron down' onClick={ this.collapse } />} />
+            </Card.Header>
+            <Card.Meta>
+                <span className='date'>{unit.type}</span>
+            </Card.Meta>
+            <Card.Description>
+                { unit.location === "Limbo" ? unit.location : `x: ${unit.location.x} y: ${unit.location.y}` }
+            </Card.Description>
+        </Card.Content>
+        <Card.Content>
+            <Grid columns={4}>
+                <GridColumn>
+                    <Popup content='Health/Max Health' trigger={<Icon name='tint' />} />
+                    {unit.health}/{unit.maxHealth}
+                </GridColumn>
+                <GridColumn>
+                    <Popup 
+                        content='Power'
+                        trigger={<Icon 
+                                    name='gavel'
+                                    color={ unit.upgraded.find(u => u === 'power') ? "blue" : this.canUpgrade('power') ? "green" : "black" }
+                                    onClick={() => { if (this.canUpgrade('power')) upgradeUnit(unit, 'power') }}/>
+                        } />
+                    {unit.power + (unit.upgraded.find(u => u === 'power') ? 1 : 0) }
+                </GridColumn>
+                <GridColumn>
+                    <Popup
+                        content='Skill'
+                        onClick={() => { if (this.canUpgrade('skill')) upgradeUnit(unit, 'skill') }}
+                        trigger={<Icon 
+                                    name='balance scale'
+                                    onClick={() => { if (this.canUpgrade('skill')) upgradeUnit(unit, 'skill') }}
+                                    color={ unit.upgraded.find(u => u === 'skill') ? "blue" : this.canUpgrade('skill') ? "green" : "black" }/>
+                        } />
+                    {unit.skill + (unit.upgraded.find(u => u === 'skill') ? 1 : 0) }
+                </GridColumn>
+                <GridColumn>
+                    <Popup
+                        content='AP'
+                        onClick={() => { if (this.canUpgrade('ap')) upgradeUnit(unit, 'ap') }}
+                        trigger={<Icon 
+                                    name='shipping fast'
+                                    onClick={() => { if (this.canUpgrade('ap')) upgradeUnit(unit, 'ap') }}
+                                    color={ unit.upgraded.find(u => u === 'ap') ? "blue" : this.canUpgrade('ap') ? "green" : "black" }/>
+                        } />
+                    {unit.ap + (unit.upgraded.find(u => u === 'ap') ? 1 : 0) }
+                </GridColumn>
+            </Grid>
+        </Card.Content>
+        <Card.Content>
+            { unit.moves.map(move => {
+                return move
+            }) }
+            <Icon name="eraser" onClick={ clearMoves } unit={unit}/>
+        </Card.Content>
+        </Fragment>)
+
         if (preview) {
-            return (
-                <Card
-                className={ `UnitCard ${selected ? "UnitCard-selected" : "" } ${unit.location === "Limbo" ? "UnitCard-limbo" : ""}`} 
-                onClick={ onClick }
-                unit={ unit }>
-                    <Card.Content>
-                        { unit.name }
-                    </Card.Content>
-                </Card>
-            )
+            body = (<Card.Content>
+                        { sprite ? sprite : unit.name }
+                    </Card.Content>)
         }
 
         if (collapsed) {
-            return (
-                <Card 
-                    className={ `UnitCard ${selected ? "UnitCard-selected" : "" } ${unit.location === "Limbo" ? "UnitCard-limbo" : ""}`} 
-                    onClick={ onClick }
-                    unit={ unit } >
-                    <Card.Content>
+            body = (<Card.Content>
                         <Card.Header>
+                            {sprite}
                             {unit.name}
                             <Popup content='Collapse' trigger={<Icon name='chevron right' onClick={ this.collapse } />} />
                         </Card.Header>
-                    </Card.Content>
-                </Card>
-            )
+                    </Card.Content>)
         }
 
         return (
         <Card
-            className={ `UnitCard ${selected ? "UnitCard-selected" : "" } ${unit.location === "Limbo" ? "UnitCard-limbo" : ""}`} 
+            className={ `UnitCard ${selected ? "UnitCard-selected" : "" } ${unit.location === "Limbo" ? "UnitCard-limbo" : ""}`}
             onClick={ onClick }
             unit={ unit }>
-            <Card.Content>
-                <Card.Header>
-                    {unit.name}
-                    <Popup content='Collapse' trigger={<Icon name='chevron down' onClick={ this.collapse } />} />
-                </Card.Header>
-                <Card.Meta>
-                    <span className='date'>{unit.type}</span>
-                </Card.Meta>
-                <Card.Description>
-                    { unit.location === "Limbo" ? unit.location : `x: ${unit.location.x} y: ${unit.location.y}` }
-                </Card.Description>
-            </Card.Content>
-            <Card.Content>
-                <Grid columns={4}>
-                    <GridColumn>
-                        <Popup content='Health/Max Health' trigger={<Icon name='tint' />} />
-                        {unit.health}/{unit.maxHealth}
-                    </GridColumn>
-                    <GridColumn>
-                        <Popup 
-                            content='Power'
-                            trigger={<Icon 
-                                        name='gavel'
-                                        color={ unit.upgraded.find(u => u === 'power') ? "blue" : this.canUpgrade('power') ? "green" : "black" }
-                                        onClick={() => { if (this.canUpgrade('power')) upgradeUnit(unit, 'power') }}/>
-                            } />
-                        {unit.power + (unit.upgraded.find(u => u === 'power') ? 1 : 0) }
-                    </GridColumn>
-                    <GridColumn>
-                        <Popup
-                            content='Skill'
-                            onClick={() => { if (this.canUpgrade('skill')) upgradeUnit(unit, 'skill') }}
-                            trigger={<Icon 
-                                        name='balance scale'
-                                        onClick={() => { if (this.canUpgrade('skill')) upgradeUnit(unit, 'skill') }}
-                                        color={ unit.upgraded.find(u => u === 'skill') ? "blue" : this.canUpgrade('skill') ? "green" : "black" }/>
-                            } />
-                        {unit.skill + (unit.upgraded.find(u => u === 'skill') ? 1 : 0) }
-                    </GridColumn>
-                    <GridColumn>
-                        <Popup
-                            content='AP'
-                            onClick={() => { if (this.canUpgrade('ap')) upgradeUnit(unit, 'ap') }}
-                            trigger={<Icon 
-                                        name='shipping fast'
-                                        onClick={() => { if (this.canUpgrade('ap')) upgradeUnit(unit, 'ap') }}
-                                        color={ unit.upgraded.find(u => u === 'ap') ? "blue" : this.canUpgrade('ap') ? "green" : "black" }/>
-                            } />
-                        {unit.ap + (unit.upgraded.find(u => u === 'ap') ? 1 : 0) }
-                    </GridColumn>
-                </Grid>
-            </Card.Content>
-            <Card.Content>
-                { unit.moves.map(move => {
-                    return move
-                }) }
-                <Icon name="eraser" onClick={ clearMoves } unit={unit}/>
-            </Card.Content>
+            { body }
         </Card>);
     }
 }
