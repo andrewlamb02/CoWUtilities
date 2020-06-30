@@ -118,3 +118,7 @@
 .TurnController-faction-logo {
     height: 2rem;
 }
+
+.TurnController-unit-type-dropdown {
+    margin-bottom: 0.5rem;
+}

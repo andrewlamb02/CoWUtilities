@@ -58,7 +58,8 @@ class TurnController extends Component {
             showSprites: false,
             popupUnits: [],
             showCellPopup: false,
-            popupCellColor: ""
+            popupCellColor: "",
+            filteredType: "All"
         }
 
         this.clickRealm = this.clickRealm.bind(this);
@@ -321,9 +322,11 @@ class TurnController extends Component {
     
                     let attributes = {};
                     let jumpLabel = "";
+                    let text = parse(mapLines[i]).childNodes[1].text.trim().split(" ")[0];
     
                     if (parse(mapLines[i]).childNodes[1].attributes.bgcolor === "#000000") {
                         attributes.blocked = true;
+                        text = "?";
                     }
     
                     if (parse(mapLines[i]).childNodes[1].childNodes.find(node => node.tagName === "b")) {
@@ -337,7 +340,7 @@ class TurnController extends Component {
     
                     row.push({
                         color: parse(mapLines[i]).childNodes[1].attributes.bgcolor,
-                        text: parse(mapLines[i]).childNodes[1].text.trim().split(" ")[0],
+                        text,
                         attributes,
                         jumpLabel
                     })
@@ -760,6 +763,12 @@ class TurnController extends Component {
         }
     }
 
+    changeSelectedType = (event, data) => {
+        this.setState({
+            filteredType: data.value
+        })
+    }
+
     render() {
         let { 
             game,
@@ -780,7 +789,8 @@ class TurnController extends Component {
             showCellPopup,
             factionLogo,
             homeRealm,
-            popupCellColor
+            popupCellColor,
+            filteredType
         } = this.state;
 
         return (
@@ -912,7 +922,21 @@ class TurnController extends Component {
                                 </Popup>
                             </h2>
                             <div>
-                                { units.filter(u => u.faction === faction ).map(u => {
+                                <Dropdown
+                                    className="TurnController-unit-type-dropdown"
+                                    scrolling
+                                    search={(values, search) => values.filter(v => v.value.toLowerCase().search(search.toLowerCase()) !== -1)}
+                                    onChange={this.changeSelectedType}
+                                    options={[{ key: "All", text: "All", value: "All"}].concat(globals.unitTypes.map(u => {
+                                        return { 
+                                            key: u.name,
+                                            value: u.name,
+                                            text: <div><UnitSprite unitType={u.name} animated/>{u.name}</div>
+                                        }
+                                    }))}/>
+                            </div>
+                            <div>
+                                { units.filter(u => u.faction === faction && (filteredType === "All" || u.type === filteredType)).map(u => {
                                     return <UnitCard 
                                                 key={u.key} 
                                                 unit={u} 

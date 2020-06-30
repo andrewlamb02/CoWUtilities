@@ -111,12 +111,6 @@ class UnitCard extends Component {
         </Card.Content>
         </Fragment>)
 
-        if (preview) {
-            body = (<Card.Content>
-                        { sprite ? sprite : unit.name }
-                    </Card.Content>)
-        }
-
         if (collapsed) {
             body = (<Card.Content>
                         <Card.Header>
@@ -124,6 +118,12 @@ class UnitCard extends Component {
                             {unit.name}
                             <Popup content='Collapse' trigger={<Icon name='chevron right' onClick={ this.collapse } />} />
                         </Card.Header>
+                    </Card.Content>)
+        }
+
+        if (preview) {
+            body = (<Card.Content>
+                        { sprite ? sprite : unit.name }
                     </Card.Content>)
         }
 

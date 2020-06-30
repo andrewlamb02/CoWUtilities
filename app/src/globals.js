@@ -70,8 +70,7 @@ export let unitTypes = [
         ap: 3,
         power: 1,
         skill: 2,
-        cauldronStrength: 0,
-        specials: ["B"]
+        cauldronStrength: 0
     },
     {
         name: "Scum",
