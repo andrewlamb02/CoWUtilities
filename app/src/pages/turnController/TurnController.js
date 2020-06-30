@@ -32,9 +32,9 @@ class TurnController extends Component {
         let cycleInterval = setInterval(() => {
             const { colorCycleCount } = this.state;
             this.setState({
-                colorCycleCount: colorCycleCount > 2 ?  0.2 : colorCycleCount + (colorCycleCount > 0.75 && colorCycleCount < 1.25 ? 0.1 : 0.2)
+                colorCycleCount: colorCycleCount > 2 ?  0.1 : colorCycleCount + (colorCycleCount > 0.75 && colorCycleCount < 1.25 ? 0.05 : 0.1)
             })
-        }, 20)
+        }, 10)
 
         this.state = {
             game: "",
