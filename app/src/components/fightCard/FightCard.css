@@ -1,0 +1,20 @@
+.FightCard.FightCard.FightCard.FightCard.FightCard.FightCard.FightCard {
+    width: calc(100% - 1rem);
+    margin: 0.5rem;
+}
+
+.FightCard.FightCard.FightCard.FightCard .FightCard-table {
+    text-align: center;
+}
+
+.FightCard-hit {
+    margin: 0.25rem;
+}
+
+.FightCard.FightCard.FightCard.FightCard.FightCard .FightCard-stat-icon {
+    margin-left: 0.25rem;
+}
+
+.FightCard-collapse-chevron {
+    cursor: pointer;
+}

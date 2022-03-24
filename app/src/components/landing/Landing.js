@@ -31,9 +31,13 @@ class Landing extends Component {
               <Button name='turn' color='google plus' onClick={this.handleItemClick}>
                 Turn Controller
               </Button>
-              <Button.Or></Button.Or>
+              <Button.Or />
               <Button name='combat' color='facebook' onClick={this.handleItemClick}>
                 Combat Simulator
+              </Button>
+              <Button.Or />
+              <Button name='units' color='twitter' onClick={this.handleItemClick}>
+                Unit Book
               </Button>
             </Button.Group>
           </div>

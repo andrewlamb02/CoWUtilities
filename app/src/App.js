@@ -8,6 +8,7 @@ import DefaultLayout from "./layouts/default/Default";
 import MainLayout from "./layouts/main/Main";
 import Landing from "./components/landing/Landing";
 import TurnController from './pages/turnController/TurnController';
+import UnitBook from './pages/unitBook/UnitBook';
 
 class App extends Component {
   render() {
@@ -18,6 +19,7 @@ class App extends Component {
             <RouteWrapper exact path="/" component={ Landing } layout={ DefaultLayout } />
             <RouteWrapper path="/combat" component={ CombatSimulator } layout={ MainLayout }  />
             <RouteWrapper path="/turn" component={ TurnController } layout={ MainLayout }  />
+            <RouteWrapper path="/units" component={ UnitBook } layout={ MainLayout }  />
           </Switch>
         </Router>
       </div>

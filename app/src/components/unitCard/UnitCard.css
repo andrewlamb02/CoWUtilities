@@ -10,7 +10,7 @@
     background-color: #ccc;
 }
 
-.UnitCard.UnitCard.UnitCard.UnitCard.UnitCard-selected {
+.UnitCard-selected.UnitCard-selected.UnitCard-selected.UnitCard-selected.UnitCard-selected {
     background-color: #9fe2bf;
 }
 
@@ -18,4 +18,17 @@
     height: 32px;
     width: 32px;
     margin-right: 0.5rem;
+}
+
+.UnitCard.UnitCard.UnitCard.UnitCard.UnitCard.UnitCard.UnitCard.UnitCard .UnitCard-remaining-ap-bar {
+    margin: 0;
+}
+
+.UnitCard-content-move.UnitCard-content-move.UnitCard-content-move.UnitCard-content-move.UnitCard-content-move.UnitCard-content-move {
+    font-size: 10px;
+    padding: 0;
+}
+
+.UnitCard-move-cell:hover {
+    background-color: #ccc;
 }

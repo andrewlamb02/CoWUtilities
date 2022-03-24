@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 // import logo from './logo.svg';
-import { Button, Dropdown, Grid, Popup, Modal, TextArea, Checkbox, ModalActions } from 'semantic-ui-react';
+import { Button, Dropdown, Grid, Popup, Modal, TextArea, Checkbox } from 'semantic-ui-react';
 import './TurnController.css';
 import { parse } from 'node-html-parser';
 import UnitCard from '../../components/unitCard/UnitCard';
@@ -10,6 +10,7 @@ import * as chroma from "chroma-js";
 import CombatSimulator from '../combatSimulator/CombatSimulator';
 import sprites from '../../resources/sprites';
 import UnitSprite from '../../components/UnitSprite/UnitSprite';
+import FightCard from '../../components/fightCard/FightCard';
 
 const IMPULSES = [
     { key: 0, value: 0, text: 'Start' },
@@ -59,7 +60,10 @@ class TurnController extends Component {
             popupUnits: [],
             showCellPopup: false,
             popupCellColor: "",
-            filteredType: "All"
+            filteredType: "All",
+            fights: [],
+            showFights: false,
+            showUnitsInLimbo: false
         }
 
         this.clickRealm = this.clickRealm.bind(this);
@@ -154,11 +158,13 @@ class TurnController extends Component {
 
     parseFileName = (name) => {
         let words = name.split("_");
-        this.setState({
-            game: words[3],
-            turn: words[5],
-            faction: words[6]
-          });
+        if (words.length === 7) {
+            this.setState({
+                game: words[3] || "",
+                turn: words[5] || "",
+                faction: words[6] || ""
+            });
+        }
     }        
 
     loadFile = (text) => {
@@ -166,14 +172,16 @@ class TurnController extends Component {
         let lines = text.split("<br>");
         let sections = [];
         let homeRealm = {};
+        let factionName = "";
         let factionLogo;
 
         for (let i = 0; i < lines.length; i++) {
             lines[i] = lines[i].trim();
 
-            let start = lines[i].search("<h2>") === -1 ? lines[i].search("<h3>") : lines[i].search("<h2>");
+            let start = lines[i].search("<h3>") === -1 ? lines[i].search("<h2>") : lines[i].search("<h3>");
             if (start !== -1) {
-                let end = (lines[i].search("</h2>") === -1 ? lines[i].search("</h3>") : lines[i].search("</h2>")) + 5;
+                console.log(lines[i]);
+                let end = (lines[i].search("</h3>") === -1 ? lines[i].search("</h2>") : lines[i].search("</h3>")) + 5;
                 lines.splice(i + 1, 0, lines[i].substr(end, lines[i].length))
                 lines[i] = lines[i].substr(start, end);
                 
@@ -194,6 +202,11 @@ class TurnController extends Component {
                     y: parseInt(word.substring(yIndex + 1, word.length))
                 }
             }
+
+            if (lines[i].search("Faction: ") !== -1) {
+                factionName = lines[i].split("Faction: ")[1].trim();
+            }
+
             if (i === 0 && lines[i].search("<img") !== -1) {
                 factionLogo = lines[i].substring(lines[i].search('<img src="') + 10, lines[i].length);
                 factionLogo = factionLogo.substring(0, factionLogo.search('"'));
@@ -228,8 +241,10 @@ class TurnController extends Component {
             }
 
             let moves = [];
+            let history = [];
             for (let i = 0; i < 10; i++) {
                 moves.push(".");
+                history.push(".");
             }
 
             units.push({
@@ -246,7 +261,8 @@ class TurnController extends Component {
                 initialLocation,
                 moves,
                 pathHome: false,
-                upgraded: []
+                upgraded: [],
+                history
             });
             i++;
         })
@@ -315,6 +331,7 @@ class TurnController extends Component {
                                     y: grid.length
                                 },
                                 moves: [],
+                                history: [],
                                 upgraded: []
                             })
                         }
@@ -351,6 +368,110 @@ class TurnController extends Component {
         if (row.length > 0) {
             grid.push(row);
         }
+        
+        let movementIndex = sections.findIndex(section => section.title === "Movement and Combat Summary");
+
+        // console.log(sections[movementIndex]);
+
+        let movementLines = lines.slice(sections[movementIndex].i + 1, (sections[movementIndex+1] || {}).i || lines.length);
+
+        let history = "";
+        let inBattle = false;
+        let fights = [];
+        let fight;
+        let win = false;
+        movementLines.forEach(line => {
+            if (line.search("upgrades") !== -1) return;
+
+            if (win) {
+                if (line.search("evolves") !== -1) {
+                    fight.monsters[0].evolved = line.split(" to ")[1].split("!")[0]
+                }
+                win = false;
+            }
+
+            if(inBattle) {
+                if (line.search("<img") === -1 && line.length) {
+                    let words = line.split(" ");
+                    if (words[0] === "Your") {
+                        let mText = line.split("VS");
+                        fight.monsters = [{
+                            faction: factionName,
+                            type: mText[0].split(" ")[1],
+                            name: mText[0].split(" ")[2],
+                            health: parseInt(mText[0].split(" ")[4]),
+                            power: parseInt(mText[0].split(" ")[9]),
+                            skill: parseInt(mText[0].split(" ")[12]),
+                            xp: parseInt(mText[0].search("xp") !== -1 ? mText[0].split(" ")[14] : 0),
+                            initiative: parseInt(mText[0].split(" ")[mText[0].search("xp") === -1 ? 14 : 16])
+                        }, {
+                            faction: mText[1].split("hitpoints")[0].trim().split(" ").splice(0, mText[1].split("hitpoints")[0].trim().split(" ").length - 1).reduce((p, c) => p + " " + c, "").trim(),
+                            type: mText[1].split("hitpoints")[0].trim().split(" ")[mText[1].split("hitpoints")[0].trim().split(" ").length - 1],
+                            health: parseInt(mText[1].split("hitpoints")[1].trim().split(" ")[0]),
+                            power: parseInt(mText[1].split("hitpoints")[1].trim().split(" ")[5]),
+                            skill: parseInt(mText[1].split("hitpoints")[1].trim().split(" ")[8]),
+                            xp: mText[1].search("xp") !== -1 ? parseInt(mText[1].split("hitpoints")[1].trim().split(" ")[10]) : "?",
+                            initiative: parseInt(mText[1].split("hitpoints")[1].trim().split(" ")[mText[1].search("xp") === -1 ? 10 : 12])
+                        }];
+                    } else {
+                        let roundText = line.split("Round").slice(1, line.split("Round").length);
+                        fight.rounds = [];
+                        fight.xp = "";
+                        roundText.forEach(r => {
+                            let round = {};
+                            round.attacks = [];
+                            words = r.split("li>");
+
+                            round.number = parseInt(words[0].split("<")[0]);
+                            words = words.splice(1, words.length);
+                            let attack = {};
+                            for (let i = 0; i < words.length; i++) {
+                                if (i % 4 === 0) {
+                                    if (Object.keys(attack).length) round.attacks.push(attack);
+                                    attack = {};
+                                    attack.faction = words[i].split("attacks!")[0].trim();
+                                    attack.hitRate = parseInt(words[i].split("(")[1].split("%")[0]);
+                                    attack.hits = words[i].split(": ")[1].split("(")[0].split(" ");
+                                    attack.actualHit = parseInt(words[i].split(": ")[2].split("%")[0]);
+                                } else if (i % 2 === 0) {
+                                    attack.damage = parseInt(words[i].split("hp")[0].trim().split(" ")[words[i].split("hp")[0].trim().split(" ").length - 1])
+                                    if (words[i].search("DEAD") !== -1) {
+                                        attack.dead = true;
+                                        fight.monsters.find(m => m.faction !== attack.faction.split(" ").splice(0, attack.faction.split(" ").length - 1).reduce((s, w) => s + " " + w, "").trim()).dead = true;
+                                        attack.vp = attack.dead ? parseInt(words[i].split("VP")[1].trim().split(" ")[words[i].split("VP")[1].trim().split(" ").length-1]) : "";
+                                    }
+                                } else if (words[i].search("XP") !== -1) {
+                                    fight.xp = parseInt(words[i].trim().split("XP")[1].split(" = ")[1].trim());
+                                }
+                            }
+                            round.attacks.push(attack);
+                            fight.rounds.push(round);
+                        })
+                    }
+                }
+                if (line.search("DEAD") !== -1) {
+                    if (!fight.monsters[0].dead) {
+                        win = true;
+                    }
+                    inBattle = false;
+                    fights.push(fight);
+                }
+            }
+
+            if (line.search("Battle") !== -1) {
+                inBattle = true;
+                fight = {
+                    location: {
+                        x: parseInt(line.split(" ")[4].substring(1, line.split(" ")[4].search("y"))),
+                        y: parseInt(line.split(" ")[4].substring(line.split(" ")[4].search("y")+1, line.split(" ")[4].length))
+                    },
+                    impulse: parseInt(line.split(" ")[6])
+                };
+            }
+            history = `${history}\n${line}`
+        })
+
+        console.log(fights);
 
         this.setState({
             text: unitLines,
@@ -360,7 +481,9 @@ class TurnController extends Component {
             homeRealm,
             startingRealmforce,
             cauldronStrength,
-            factionLogo
+            factionLogo,
+            factionName,
+            fights
         });
     }
 
@@ -420,7 +543,7 @@ class TurnController extends Component {
     isMovable = (x, y) => {
         const { selectedUnit, grid, homeRealm } = this.state;
 
-        if (!selectedUnit || (grid[y][x].attributes.blocked && !this.isAdjacent(selectedUnit.location, { x, y })) || x === 0 || y === 0) {
+        if (!selectedUnit || (selectedUnit.location.x === x && selectedUnit.location.y === y) || (grid[y][x].attributes.blocked && !this.isAdjacent(selectedUnit.location, { x, y })) || x === 0 || y === 0) {
             return false;
         }
 
@@ -578,6 +701,8 @@ class TurnController extends Component {
                 if (currentImpulse !== 10) {
                     this.setImpulse(currentImpulse + 1);
                 }
+            } else {
+                this.showCellPopup(x, y);
             }
         } else {
             this.showCellPopup(x, y);
@@ -613,13 +738,13 @@ class TurnController extends Component {
         return ".";
     }
 
-    clearMoves = (evet, data) => {
+    clearMoves = (unit) => {
         const { units } = this.state;
 
-        let unit = units.find(u => u.name === data.unit.name);
-        unit.moves = unit.moves.map(move => ".");
+        let u = units.find(u => u.name === unit.name);
+        u.moves = u.moves.map(move => ".");
 
-        let newUnits = this.runMoves({ units });
+        let newUnits = this.runMoves({ u });
 
         this.setState({ units: newUnits });
     }
@@ -723,7 +848,7 @@ class TurnController extends Component {
     }
 
     cell = (cell, j, i) => {
-        const { units, showSprites, faction, homeRealm, grid, colorCycleCount, selectedUnit } = this.state
+        const { units, showSprites, faction, homeRealm, grid, selectedUnit } = this.state
         return (
         <td
             className={`${ cell.attributes.jump ? "TurnController-jump-realm" : "" }`}
@@ -749,6 +874,14 @@ class TurnController extends Component {
 
     toggleShowSprites = () => {
         this.setState({ showSprites: !this.state.showSprites })
+    }
+
+    toggleFights = () => {
+        this.setState({ showFights: !this.state.showFights })
+    }
+
+    toggleUnitsInLimbo = () => {
+        this.setState({ showUnitsInLimbo: !this.state.showUnitsInLimbo })
     }
 
     showCellPopup = (x, y) => {
@@ -790,7 +923,11 @@ class TurnController extends Component {
             factionLogo,
             homeRealm,
             popupCellColor,
-            filteredType
+            filteredType,
+            showFights,
+            fights,
+            factionName,
+            showUnitsInLimbo
         } = this.state;
 
         return (
@@ -853,6 +990,24 @@ class TurnController extends Component {
                         <div className="TurnController-button">
                             <Popup 
                                 position="right center"
+                                open={ showFights }
+                                trigger= {
+                                    <Button
+                                        circular
+                                        icon="hourglass half"
+                                        color="orange"
+                                        onClick={ this.toggleFights } />
+                                    }>
+                                    <div className="TurnController-fights-popup">
+                                        { fights.map((f, index) => {
+                                            return <FightCard key={`fight-${index}`} fight={f} />;
+                                        })}
+                                    </div>
+                            </Popup>
+                        </div>
+                        <div className="TurnController-button">
+                            <Popup 
+                                position="right center"
                                 open={ showCombatSimulator }
                                 className="TurnController-combat-simulator-popup"
                                 trigger= {
@@ -891,8 +1046,8 @@ class TurnController extends Component {
                             <tr>
                                 <td>
                                     <h1>
-                                        <img className="TurnController-faction-logo" src={factionLogo} />
-                                        { game }: Turn { turn } - { faction } RP: {this.currentRealmforce()}/{startingRealmforce}
+                                        <img alt="" className="TurnController-faction-logo" src={factionLogo} />
+                                        { game }: Turn { turn } - { factionName } RP: {this.currentRealmforce()}/{startingRealmforce}
                                     </h1>
                                 </td>
                                 <td className="TurnController-impulse-container">
@@ -915,16 +1070,13 @@ class TurnController extends Component {
                         <Grid.Column className={`TurnController-units ${ unitsCollapsed ? "collapsed" : "" }`}>
                             <h2>
                                 Units {units.filter(unit => unit.location !== "Limbo" && unit.faction === faction).length}/20
-                                <Popup
-                                    position="bottom right"
-                                    trigger={<Checkbox toggle onClick={this.toggleShowSprites} className="TurnController-showSprites-toggle" />}>
-                                        Enable Experimental Features
-                                </Popup>
+                                <Checkbox toggle label="Sprites" onClick={this.toggleShowSprites}/>
                             </h2>
                             <div>
                                 <Dropdown
                                     className="TurnController-unit-type-dropdown"
                                     scrolling
+                                    defaultValue="All"
                                     search={(values, search) => values.filter(v => v.value.toLowerCase().search(search.toLowerCase()) !== -1)}
                                     onChange={this.changeSelectedType}
                                     options={[{ key: "All", text: "All", value: "All"}].concat(globals.unitTypes.map(u => {
@@ -934,9 +1086,10 @@ class TurnController extends Component {
                                             text: <div><UnitSprite unitType={u.name} animated/>{u.name}</div>
                                         }
                                     }))}/>
+                                    <Checkbox toggle label="Limbo" onClick={this.toggleUnitsInLimbo} className="TurnController-showSprites-toggle" />
                             </div>
                             <div>
-                                { units.filter(u => u.faction === faction && (filteredType === "All" || u.type === filteredType)).map(u => {
+                                { units.filter(u => u.faction === faction && (filteredType === "All" || u.type === filteredType) && (showUnitsInLimbo || u.location !== "Limbo")).map(u => {
                                     return <UnitCard 
                                                 key={u.key} 
                                                 unit={u} 
@@ -945,7 +1098,9 @@ class TurnController extends Component {
                                                 clearMoves={this.clearMoves}
                                                 upgradeUnit={this.upgradeUnit}
                                                 preview={unitsCollapsed}
-                                                showSprites={showSprites} />
+                                                showSprites={showSprites}
+                                                setImpulse={this.setImpulse}
+                                                currentImpulse={currentImpulse} />
                                 }) }
                             </div>
                         </Grid.Column>
@@ -992,7 +1147,9 @@ class TurnController extends Component {
                                             clearMoves={this.clearMoves}
                                             upgradeUnit={this.upgradeUnit}
                                             factionColor={u.faction === faction ? grid[homeRealm.y][homeRealm.x].color : popupCellColor}
-                                            showSprites />
+                                            showSprites
+                                            setImpulse={this.setImpulse}
+                                            currentImpulse={currentImpulse} />
                             }) }
                         </Modal.Content>
                     </Modal>

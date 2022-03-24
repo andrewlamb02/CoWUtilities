@@ -1,0 +1,15 @@
+.UnitBook {
+    height: calc(100vh - 5rem);
+    /* overflow-y: hidden; */
+    position: relative;
+}
+
+.UnitBook-table-body {
+    overflow-y: auto;
+}
+
+.UnitBook-tab-pane {
+    height: calc(100vh - 5rem);
+    overflow-y: auto;
+    padding: 1rem;
+}

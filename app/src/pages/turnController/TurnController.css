@@ -45,7 +45,7 @@
 .TurnController.TurnController.TurnController.TurnController.TurnController .TurnController-map-table {
     /* border: black 2px solid; */
     border-collapse: collapse;
-    font-size: 10px;
+    font-size: 10x;
     /* font-weight: bold; */
 }
 
@@ -107,8 +107,9 @@
     width: 32px;
 }
 
-.TurnController-experimental-toggle {
-    padding-left: 0.5rem
+.TurnController-showSprites-toggle {
+    margin-left: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 .TurnController-cell-popup.TurnController-cell-popup.TurnController-cell-popup.TurnController-cell-popup.TurnController-cell-popup {
@@ -121,4 +122,16 @@
 
 .TurnController-unit-type-dropdown {
     margin-bottom: 0.5rem;
+    border: solid 1px #ccc;
+    border-radius: 0.5rem;
+    padding: 0.2rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.TurnController-fights-popup.TurnController-fights-popup.TurnController-fights-popup.TurnController-fights-popup.TurnController-fights-popup {
+    width: 90%;
+    min-width: 45rem;
+    height: 90vh;
+    overflow-y: auto;
 }

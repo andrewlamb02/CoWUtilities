@@ -30,7 +30,7 @@ class UnitSprite extends Component {
         if (animated && animationTimer) {
             image = sprites.units(`${unitType}Anim`) || image;
         }
-        return image ? <img src={image} className="UnitCard-unit-sprite" style={ { backgroundColor: color } } /> : null;
+        return image ? <img alt={unitType} src={image} className="UnitCard-unit-sprite" style={ { backgroundColor: color } } /> : unitType;
     }
 }
 
